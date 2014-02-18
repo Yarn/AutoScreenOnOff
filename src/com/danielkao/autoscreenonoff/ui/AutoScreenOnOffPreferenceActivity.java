@@ -246,7 +246,10 @@ public class AutoScreenOnOffPreferenceActivity extends PreferenceActivity implem
         // update state of pref disable in landscape
         updatePrefState();
 
-        if(key.equals(CV.PREF_AUTO_ON)){
+        if(key.equals(CV.PREF_MAGNET_MODE)){
+
+        }
+        else if(key.equals(CV.PREF_AUTO_ON)){
             if(CV.getPrefAutoOnoff(this)==false)
                 cancelSchedule();
             else{

@@ -11,6 +11,9 @@
     <string name="device_management_explanation">Need this privilege to turn off the screen</string>
     <string name="widget_title">Screen OnOff</string>
 
+    <string name="pref_title_magnet_mode">Magnet Mode</string>
+    <string name="pref_summary_magnet_mode">Uses magnet sensor.</string>
+
     <string name="pref_auto_setting">Auto Screen Settings</string>
     <string name="pref_power_setting">Power Settings</string>
     <string name="pref_advanced_setting">Advanced</string>
@@ -194,8 +197,8 @@
     <!-- no translation -->
     <string name="author_url">https://github.com/plateaukao/PowerOff</string>
     <string name="playstore_url">https://play.google.com/store/apps/details?id=com.danielkao.autoscreenonoff</string>
-    <string name="pref_play_close_sound">Play sound while auto turning off screen</string>
-    <string name="pref_title_play_close_sound">Play Close Sound</string>
+    <string name="pref_play_close_sound">Vibrate while auto turning off screen</string>
+    <string name="pref_title_play_close_sound">Vibrate on off</string>
 
     <!-- toggle strategy -->
     <string name="pref_onoff_related">On/Off Related Settings</string>

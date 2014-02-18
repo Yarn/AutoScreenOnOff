@@ -33,14 +33,22 @@ import com.danielkao.autoscreenonoff.util.CV;
 import java.lang.reflect.Method;
 import java.util.Calendar;
 
-public class SensorMonitorService extends Service implements
-		SensorEventListener {
+public class SensorMonitorService extends Service implements SensorEventListener {
 	// Binder given to clients
 	private final IBinder mBinder = new LocalBinder();
 
 	private SensorManager mSensorManager;
 	private PowerManager mPowerManager;
 	private Sensor mProximity;
+    private Sensor mLight;
+    private Sensor mMagnet;
+    private int lightLux;
+    private int baselineLightLux;
+    private boolean lightRegistered = false;
+    boolean magnetMode;
+    int magnetStrength;
+    int magPollFreq;
+    final static int proxPollFreq = 500000;
     OrientationEventListener mOrientationListener;
 
     // schedule
@@ -75,12 +83,12 @@ public class SensorMonitorService extends Service implements
 	}
 
     // swipe counter
-    private float currentSensorValue;
-    private long tsLastChange;
-    private int swipeCount=0;
-    private void resetSwipeCount(){
+    //private float currentSensorValue;
+    //private long tsLastChange;
+    //private int swipeCount=0;
+    /*private void resetSwipeCount(){
         swipeCount = 0;
-    }
+    }*/
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -279,9 +287,16 @@ public class SensorMonitorService extends Service implements
 		deviceManager = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
 		mDeviceAdmin = new ComponentName(this, TurnOffReceiver.class);
 
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        magnetMode = sp.getBoolean(CV.PREF_MAGNET_MODE, false);
+        CV.logv("Magnet Mode " + magnetMode);
+
 		mPowerManager = ((PowerManager) getSystemService(POWER_SERVICE));
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
 		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        mLight = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        mMagnet = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
 
 		partialLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
 				"autoscreenonoff partiallock");
@@ -327,7 +342,19 @@ public class SensorMonitorService extends Service implements
 			this.startActivity(i);
 		}
 
-		mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
+        magPollFreq = CV.getPrefPollFreq(getBaseContext());
+
+        if(magnetMode){
+            //mSensorManager.registerListener(this, mMagnet, 500000);
+            if(mPowerManager.isScreenOn())
+                mSensorManager.registerListener(this, mMagnet, magPollFreq);
+            //else
+            mSensorManager.registerListener(this, mProximity, proxPollFreq);
+        }else{
+            mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
+            mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
+            lightRegistered = true;
+        }
         // listen to orientation change
         if(CV.getPrefDisableInLandscape(getBaseContext())){
             registerOrientationChange();
@@ -350,6 +377,7 @@ public class SensorMonitorService extends Service implements
 		CV.logi("unregisterSensor");
 		if (mIsRegistered) {
 			mSensorManager.unregisterListener(this);
+            lightRegistered = false;
             if(!bForeground)
             {
                 String s = getString(R.string.turn_autoscreen_off);
@@ -379,76 +407,101 @@ public class SensorMonitorService extends Service implements
 	@Override
 	public final void onSensorChanged(SensorEvent event) {
         int type = event.sensor.getType();
-        if(type == Sensor.TYPE_PROXIMITY){
-            float lux = event.values[0];
-
-            // calculate swipe count
-            long tsCurrent = System.currentTimeMillis();
-            if(lux != currentSensorValue){
-                currentSensorValue = lux;
-                if(tsCurrent - tsLastChange < 2000){
-                    swipeCount +=1;
-                } else{
-                    swipeCount = 1;
-                    tsLastChange = tsCurrent;
+        if(type == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED){
+            magnetStrength = (int)event.values[2];
+            //CV.logv((int)event.values[0] + " " + (int)event.values[1] + " " + magnetStrength);
+            //System.out.println((int)event.values[0] + " " + (int)event.values[1] + " " + magnetStrength);
+            if(magnetStrength < -200){
+                if(mPowerManager.isScreenOn()){
+                    turnOff();
                 }
-
-            }
-            CV.logv("log swipe count:%d", swipeCount);
-
-            // Do something with this sensor value.
-            CV.logv("onSensorChanged proximity:%f", lux);
-            if (isActiveAdmin()) {
-                // reset handler if there's already one
-                if(handler.hasMessages(CALLBACK_EXISTS)){
-                    CV.logv("timer is on; exit");
-                    resetHandler();
-                    return;
+            }/*else if(!mPowerManager.isScreenOn()){
+                turnOn();
+            }*/
+        }
+        else if(type == Sensor.TYPE_LIGHT){
+            lightLux = (int)event.values[0];
+        }
+        else if(type == Sensor.TYPE_PROXIMITY){
+            int cmDist = (int)event.values[0];
+            //proximitycm = (int)event.values[0];
+            if(magnetMode){
+                //System.out.println(cmDist);
+                if(cmDist != 0){
+                    turnOn();
                 }
+            }else{
 
-                // value == 0; should turn screen off
-                if (lux == 0f) {
-                    if (mPowerManager.isScreenOn()) {
-                        // check if it is disabled during landscape mode, and now it's really in landscape
-                        // --> return
-                        if(CV.getPrefDisableInLandscape(this) && isOrientationLandscape()){
-                            return;
-                        }
-                        else{
-                            long timeout = (long) CV.getPrefTimeoutLock(this);
-                            if(timeout == 0)
-                                turnOff();
-                            else if(timeout == 2){
-                                if(swipeCount >=4){
-                                    resetSwipeCount();
+                // calculate swipe count
+                /*long tsCurrent = System.currentTimeMillis();
+                if(cmDist != currentSensorValue){
+                    currentSensorValue = cmDist;
+                    if(tsCurrent - tsLastChange < 2000){
+                        swipeCount +=1;
+                    } else{
+                        swipeCount = 1;
+                        tsLastChange = tsCurrent;
+                    }
+                }*/
+                //CV.logv("log swipe count:%d", swipeCount);
+
+                // Do something with this sensor value.
+                CV.logv("onSensorChanged proximity:%f", cmDist);
+                if (isActiveAdmin()) {
+                    // reset handler if there's already one
+                    if(handler.hasMessages(CALLBACK_EXISTS)){
+                        CV.logv("timer is on; exit");
+                        resetHandler();
+                        return;
+                    }
+
+                    // value == 0; should turn screen off
+                    if (cmDist == 0) {
+                        if (mPowerManager.isScreenOn()) {
+                            // check if it is disabled during landscape mode, and now it's really in landscape
+                            // --> return
+                            if(CV.getPrefDisableInLandscape(this) && isOrientationLandscape()){
+                                return;
+                            }
+                            else{
+                                long timeout = (long) CV.getPrefTimeoutLock(this);
+                                if(timeout == 0)
                                     turnOff();
+                                /*else if(timeout == 2){
+                                    if(swipeCount >=4){
+                                        resetSwipeCount();
+                                        turnOff();
+                                    }
+                                }*/
+                                else if(timeout == 10){
+                                    // never: do nothing
+                                    return;
+                                } else{
+                                    handler.postDelayed(runnableTurnOff, timeout);
                                 }
                             }
+                        }
+                    }
+                    // should turn on
+                    else {
+                        baselineLightLux = lightLux;
+                        if (!mPowerManager.isScreenOn()) {
+                            long timeout = (long) CV.getPrefTimeoutUnlock(this);
+                            if(timeout==0){
+                                turnOn();
+                            }
+                            /*else if(timeout == 2){
+                                if(swipeCount >=4){
+                                    resetSwipeCount();
+                                    turnOn();
+                                }
+                            }*/
                             else if(timeout == 10){
                                 // never: do nothing
                                 return;
                             } else
-                                handler.postDelayed(runnableTurnOff, timeout);
+                                handler.postDelayed(runnableTurnOn, timeout);
                         }
-                    }
-                }
-                // should turn on
-                else {
-                    if (!mPowerManager.isScreenOn()) {
-                        long timeout = (long) CV.getPrefTimeoutUnlock(this);
-                        if(timeout==0)
-                            turnOn();
-                        else if(timeout == 2){
-                            if(swipeCount >=4){
-                                resetSwipeCount();
-                                turnOn();
-                            }
-                        }
-                        else if(timeout == 10){
-                            // never: do nothing
-                            return;
-                        } else
-                            handler.postDelayed(runnableTurnOn, timeout);
                     }
                 }
             }
@@ -507,6 +560,17 @@ public class SensorMonitorService extends Service implements
     }
 
     private void turnOn(){
+        if(magnetMode){
+            //mSensorManager.unregisterListener(this);
+            mSensorManager.registerListener(this, mMagnet, magPollFreq);
+        }
+        else if(!lightRegistered){
+            mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
+            CV.logi("light sensor enabled");
+
+            lightRegistered = true;
+        }
+
         if (!screenLock.isHeld()) {
             screenLock.acquire();
                 /*
@@ -537,7 +601,23 @@ public class SensorMonitorService extends Service implements
         if(screenLock.isHeld())
             screenLock.release();
         deviceManager.lockNow();
-        playCloseSound();
+        //playCloseSound();
+        if(magnetMode){
+            mSensorManager.unregisterListener(this, mMagnet);
+            //mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+        else if(lightRegistered){
+            mSensorManager.unregisterListener(this, mLight);
+            CV.logi("Light sensor disabled");
+
+            lightRegistered = false;
+        }
+
+        boolean b  = CV.getPrefPlayCloseSound(this);
+        if(b){
+            Vibrator vibe = (Vibrator)getSystemService(VIBRATOR_SERVICE);
+            vibe.vibrate(40);
+        }
 
     }
 
@@ -545,8 +625,20 @@ public class SensorMonitorService extends Service implements
     private Runnable runnableTurnOff = new Runnable() {
         @Override
         public void run() {
-            turnOff();
-            resetHandler();
+            //System.out.println(baselineLightLux + " " + lightLux);
+            if(magnetMode){
+                turnOff();
+                resetHandler();
+                return;
+            }else{
+                if(baselineLightLux < 40 || (lightLux < baselineLightLux/2)){
+                    turnOff();
+                    resetHandler();
+                    return;
+                }
+                resetHandler();
+                handler.postDelayed(runnableTurnOff, 1000);
+            }
         }
     };
 

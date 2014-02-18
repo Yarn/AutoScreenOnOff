@@ -35,6 +35,9 @@ public final class CV {
     public static final String PREF_STRATEGY_TURNON = "prefStrategyTurnOn";
     public static final String PREF_STRATEGY_TURNOFF = "prefStrategyTurnOff";
 
+    public static final String PREF_MAGNET_MODE = "prefMagnetMode";
+    public static final String PREF_POLL_FREQ = "prefPollFreq";
+
     //
     public static final String SERVICEACTION = "serviceaction";
 	public static final int SERVICEACTION_TOGGLE = 0;
@@ -89,6 +92,15 @@ public final class CV {
             Object [] slicedObj = Arrays.copyOfRange(argv, 1, argv.length);
             Log.i(TAG,String.format((String) argv[0], (Object[])slicedObj));
         }
+    }
+
+    public static int getPrefPollFreq(Context context){
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        String freq = sp.getString(PREF_POLL_FREQ, "");
+        if(freq.equals("")){
+            return 100;
+        }
+        return Integer.parseInt(freq);
     }
 
     public static boolean getPrefAutoOnoff(Context context) {
