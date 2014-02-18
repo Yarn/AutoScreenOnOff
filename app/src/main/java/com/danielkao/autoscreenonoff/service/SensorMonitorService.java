@@ -51,16 +51,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
     final static int proxPollFreq = 500000;
     OrientationEventListener mOrientationListener;
 
-    // schedule
-    AlarmManager am;
-    private AlarmManager getAlarmManager(){
-        if(am==null)
-        {
-            am = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-        }
-        return am;
-    }
-
 	private boolean mIsRegistered;
 
 	private WakeLock partialLock, screenLock;
@@ -77,18 +67,9 @@ public class SensorMonitorService extends Service implements SensorEventListener
 
     // for notification logic
     private boolean bForeground = false;
-    private int NOTIFICATION_ONGOING = 12345;
 	private boolean isActiveAdmin() {
 		return deviceManager.isAdminActive(mDeviceAdmin);
 	}
-
-    // swipe counter
-    //private float currentSensorValue;
-    //private long tsLastChange;
-    //private int swipeCount=0;
-    /*private void resetSwipeCount(){
-        swipeCount = 0;
-    }*/
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -117,10 +98,11 @@ public class SensorMonitorService extends Service implements SensorEventListener
         switch(action){
             case CV.SERVICEACTION_SHOW_NOTIFICATION:
             {
-                if(CV.getPrefShowNotification(this))
-                    showNotification();
-                else
-                    hideNotification();
+                if(CV.getPrefShowNotification(this)){
+                    //showNotification();
+                }else{
+                    //hideNotification();
+                }
 
                 return START_NOT_STICKY;
             }
@@ -159,7 +141,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
                 }
 
                 updateWidgetCharging(false);
-                updateNotification();
+                //updateNotification();
 
                 if (CV.getPrefAutoOnoff(this) == false) {
                     unregisterSensor();
@@ -180,7 +162,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
                     registerSensor();
 
                     updateWidgetCharging(CV.isPlugged(this));
-                    updateNotification();
+                    //updateNotification();
                 }
                 break;
             }
@@ -192,7 +174,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
                     unregisterSensor();
                 if(!CV.getPrefAutoOnoff(this)){
                     updateWidgetCharging(false);
-                    updateNotification();
+                    //updateNotification();
                 }
                 return START_NOT_STICKY;
             }
@@ -201,10 +183,11 @@ public class SensorMonitorService extends Service implements SensorEventListener
                 //if(CV.getPrefAutoOnoff(this) ||
                 //        (CV.getPrefChargingOn(this)&& isPlugged())){
                 if(mIsRegistered){
-                    if(CV.getPrefDisableInLandscape(this) == true)
-                        registerOrientationChange();
-                    else
-                        unregisterOrientationChange();
+                    if(CV.getPrefDisableInLandscape(this) == true){
+                        //registerOrientationChange();
+                    }else{
+                        //unregisterOrientationChange();
+                    }
                 }
                 break;
             }
@@ -243,12 +226,12 @@ public class SensorMonitorService extends Service implements SensorEventListener
             }
             case CV.SERVICEACTION_SET_SCHEDULE:
             {
-                setSchedule();
+                //setSchedule();
                 break;
             }
             case CV.SERVICEACTION_CANCEL_SCHEDULE:
             {
-                cancelSchedule();
+                //cancelSchedule();
                 break;
             }
             default:
@@ -306,8 +289,9 @@ public class SensorMonitorService extends Service implements SensorEventListener
 						| PowerManager.ON_AFTER_RELEASE, "autoscreenonoff fulllock");
 
         // show notification if it's set
-        if(CV.getPrefShowNotification(this))
-            showNotification();
+        if(CV.getPrefShowNotification(this)){
+            //showNotification();
+        }
 	}
 
 	@Override
@@ -357,7 +341,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
         }
         // listen to orientation change
         if(CV.getPrefDisableInLandscape(getBaseContext())){
-            registerOrientationChange();
+            //registerOrientationChange();
         }
 
 		mIsRegistered = true;
@@ -431,20 +415,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
                     turnOn();
                 }
             }else{
-
-                // calculate swipe count
-                /*long tsCurrent = System.currentTimeMillis();
-                if(cmDist != currentSensorValue){
-                    currentSensorValue = cmDist;
-                    if(tsCurrent - tsLastChange < 2000){
-                        swipeCount +=1;
-                    } else{
-                        swipeCount = 1;
-                        tsLastChange = tsCurrent;
-                    }
-                }*/
-                //CV.logv("log swipe count:%d", swipeCount);
-
                 // Do something with this sensor value.
                 CV.logv("onSensorChanged proximity:%f", cmDist);
                 if (isActiveAdmin()) {
@@ -460,7 +430,8 @@ public class SensorMonitorService extends Service implements SensorEventListener
                         if (mPowerManager.isScreenOn()) {
                             // check if it is disabled during landscape mode, and now it's really in landscape
                             // --> return
-                            if(CV.getPrefDisableInLandscape(this) && isOrientationLandscape()){
+                            //if(CV.getPrefDisableInLandscape(this) && isOrientationLandscape()){
+                            if(false){
                                 return;
                             }
                             else{
@@ -521,36 +492,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
 
 	}
 
-    private boolean isOrientationLandscape(){
-        if(((mRotationAngle > 90 - CV.ROTATION_THRESHOLD) && (mRotationAngle < 90 + CV.ROTATION_THRESHOLD))
-        || ((mRotationAngle > 270 - CV.ROTATION_THRESHOLD) && (mRotationAngle < 270 + CV.ROTATION_THRESHOLD))){
-            return true;
-        }
-        else return false;
-    }
-
-    //<editor-fold desc="orientation registration">
-    private void registerOrientationChange(){
-        if(null != mOrientationListener && mOrientationListener.canDetectOrientation())
-            return;
-
-        mOrientationListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
-            public void onOrientationChanged (int orientation) {
-                mRotationAngle = orientation;
-                //CV.logv("onOrientationChanged:%d",orientation);
-            }
-        };
-        mOrientationListener.enable ();
-    }
-
-    private void unregisterOrientationChange(){
-        if(null != mOrientationListener){
-            mOrientationListener.disable();
-            mOrientationListener = null;
-        }
-    }
-    //</editor-fold>
-
     //<editor-fold desc="time out handler">
     private void resetHandler(){
         CV.logv("reset Handler");
@@ -573,13 +514,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
 
         if (!screenLock.isHeld()) {
             screenLock.acquire();
-                /*
-                KeyguardManager mKeyGuardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-                KeyguardManager.KeyguardLock mLock = mKeyGuardManager.newKeyguardLock("com.danielkao.autoscreenonoff");
-                if(mKeyGuardManager.isKeyguardLocked())
-                    mLock.disableKeyguard();
-                mLock.reenableKeyguard();
-                */
             new Thread(new Runnable() {
                 public void run() {
                     try {
@@ -651,171 +585,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
         }
     };
     //</editor-fold>
-
-    /**
-     * create notification for bringing service to foreground, also for update notification info
-     * @return a notification for showing on notificaion panel
-     */
-    private Notification createNotification(){
-        // common part
-        Intent intentOnOff = new Intent(CV.SERVICE_INTENT_ACTION);
-        intentOnOff.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_TOGGLE);
-        intentOnOff.putExtra(CV.SERVICETYPE, CV.SERVICETYPE_NOTIFICATION);
-        PendingIntent piOnOff = PendingIntent.getService(this, 0, intentOnOff, 0);
-
-        boolean bStatusOn = false;
-        if(CV.getPrefAutoOnoff(this)
-                || (CV.getPrefChargingOn(this)&&CV.isPlugged(this)))
-            bStatusOn = true;
-
-        String ticker;
-        if(CV.getPrefChargingOn(this)&&CV.isPlugged(this)){
-            ticker = getString(R.string.statusbar_charging);
-        }else{
-            ticker = getString((CV.getPrefAutoOnoff(this))?R.string.statusbar_autoscreen_on:R.string.statusbar_autoscreen_off);
-        }
-
-        // for version > 2.3.x
-        if (Build.VERSION.SDK_INT > 10) {
-            // setup pending intents
-            Intent intentApp = new Intent(this,AutoScreenOnOffPreferenceActivity.class);
-            intentApp.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            PendingIntent piApp = PendingIntent.getActivity(this, 0, intentApp, 0);
-
-            Intent intentScreenOff = new Intent(CV.SERVICE_INTENT_ACTION);
-            intentScreenOff.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_SCREENOFF);
-            PendingIntent piScreenOff = PendingIntent.getService(this, 1, intentScreenOff, 0);
-
-            // setup remoteview
-            RemoteViews remoteViews = new RemoteViews(getPackageName(), R.layout.layout_notification);
-            remoteViews.setOnClickPendingIntent(R.id.image_logo, piApp);
-            remoteViews.setOnClickPendingIntent(R.id.image_status, piOnOff);
-            remoteViews.setOnClickPendingIntent(R.id.image_screenoff, piScreenOff);
-
-            if(CV.getPrefChargingOn(this) && CV.isPlugged(this)){
-                remoteViews.setImageViewResource(R.id.image_status,R.drawable.widget_charging_on);
-            }else{
-                if(CV.getPrefAutoOnoff(this))
-                    remoteViews.setImageViewResource(R.id.image_status,R.drawable.widget_on);
-                else
-                    remoteViews.setImageViewResource(R.id.image_status,R.drawable.widget_off);
-            }
-
-            // build the notification
-        /*
-        Notification noti = new Notification.Builder(this)
-                .setContent(remoteViews)
-                .setTicker(ticker)
-                .setSmallIcon((bStatusOn)?R.drawable.statusbar_on:R.drawable.statusbar_off)
-                .setOngoing(true)
-                .build();
-                */
-            Notification noti = new Notification(
-                    (bStatusOn)?R.drawable.statusbar_on:R.drawable.statusbar_off,
-                    ticker,
-                    System.currentTimeMillis());
-            noti.contentView = remoteViews;
-            noti.flags |= Notification.FLAG_ONGOING_EVENT|Notification.FLAG_NO_CLEAR;
-
-            return noti;
-        }else{
-            Notification noti = new Notification(
-                    (bStatusOn)?R.drawable.statusbar_on:R.drawable.statusbar_off,
-                    ticker,
-                    System.currentTimeMillis());
-            noti.flags |= Notification.FLAG_ONGOING_EVENT|Notification.FLAG_NO_CLEAR;
-            noti.setLatestEventInfo(this, ticker,null,piOnOff);
-            return noti;
-        }
-    }
-
-    private void showNotification(){
-        Notification notify = createNotification();
-
-        startForeground(NOTIFICATION_ONGOING, notify);
-        bForeground = true;
-    }
-
-    private void hideNotification(){
-        bForeground = false;
-        stopForeground(true);
-
-    }
-
-    private void updateNotification(){
-        if(!bForeground)
-            return;
-
-        // hack
-        try{
-            Object service  = getSystemService("statusbar");
-            Class<?> statusbarManager = Class.forName("android.app.StatusBarManager");
-
-            if (Build.VERSION.SDK_INT <= 16) {
-                Method collapse = statusbarManager.getMethod("collapse");
-                collapse.setAccessible(true);
-                collapse.invoke(service);
-            } else {
-                Method collapse2 = statusbarManager.getMethod("collapsePanels");
-                collapse2.setAccessible(true);
-                collapse2.invoke(service);
-            }
-            //collapse.setAccessible(true);
-        }catch(Exception ex){}
-
-        Notification notify = createNotification();
-        startForeground(NOTIFICATION_ONGOING, notify);
-    }
-
-    //-- for alarm settings
-    private void setSchedule() {
-        cancelSchedule();
-        //alarm: sleep start
-        int hour = TimePreference.getHour(CV.getPrefSleepStart(this));
-        int minute = TimePreference.getMinute(CV.getPrefSleepStart(this));
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, minute);
-        calendar.set(Calendar.SECOND, 0);
-
-        Intent intent = new Intent(this, SensorMonitorService.class);
-        intent.setData(Uri.parse("timer://1")); // identifier for this alarm
-        intent.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_MODE_SLEEP);
-        intent.putExtra(CV.SLEEP_MODE_START,true);
-        PendingIntent pi = PendingIntent.getService(this, 0, intent,PendingIntent.FLAG_UPDATE_CURRENT);
-
-        getAlarmManager().setRepeating(AlarmManager.RTC_WAKEUP
-                ,calendar.getTimeInMillis()
-                ,AlarmManager.INTERVAL_DAY, pi);
-        //alarm: sleep stop
-        hour = TimePreference.getHour(CV.getPrefSleepStop(this));
-        minute = TimePreference.getMinute(CV.getPrefSleepStop(this));
-
-        calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, minute);
-
-        intent = new Intent(this, SensorMonitorService.class);
-        intent.setData(Uri.parse("timer://2"));
-        intent.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_MODE_SLEEP);
-        intent.putExtra(CV.SLEEP_MODE_START,false);
-        pi = PendingIntent.getService(this, 0, intent,PendingIntent.FLAG_UPDATE_CURRENT);
-
-        getAlarmManager().setRepeating(AlarmManager.RTC_WAKEUP
-                ,calendar.getTimeInMillis()
-                ,AlarmManager.INTERVAL_DAY, pi);
-    }
-
-    private void cancelSchedule() {
-        Intent intent = new Intent(this, SensorMonitorService.class);
-        intent.setData(Uri.parse("timer://1"));
-        PendingIntent pi = PendingIntent.getService(this, 0, intent,PendingIntent.FLAG_UPDATE_CURRENT);
-        getAlarmManager().cancel(pi);
-
-        intent.setData(Uri.parse("timer://2"));
-        pi = PendingIntent.getService(this, 0, intent,PendingIntent.FLAG_UPDATE_CURRENT);
-        getAlarmManager().cancel(pi);
-    }
 
     private void playCloseSound(){
         if(CV.getPrefPlayCloseSound(this)){

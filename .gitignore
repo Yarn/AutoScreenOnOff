@@ -1,7 +1,9 @@
 bin/
 .idea/
-build/
+app/build/
 .gradle/
+*.iml
+local.properties
 
 PowerOffTest/gen/com/danielkao/autoscreenonoff/tests/BuildConfig.java
 
