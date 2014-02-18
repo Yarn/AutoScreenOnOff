@@ -358,20 +358,20 @@ public class AutoScreenOnOffPreferenceActivity extends PreferenceActivity implem
     // only when auto on is turned on, use can set landscape mode
     private void updatePrefState(){
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-        Preference spCharging, spAuto;
-         spCharging = findPreference(CV.PREF_CHARGING_ON);
-         spAuto = findPreference(CV.PREF_AUTO_ON);
+        Preference spAuto;
+        //spCharging = findPreference(CV.PREF_CHARGING_ON);
+        spAuto = findPreference(CV.PREF_AUTO_ON);
 
 
         if(sp.getBoolean(CV.PREF_AUTO_ON, false)){
             spAuto.setEnabled(false);
-            spCharging.setEnabled(false);
+            //spCharging.setEnabled(false);
         }else{
-            spCharging.setEnabled(true);
+            //spCharging.setEnabled(true);
         }
 
         if(sp.getBoolean(CV.PREF_CHARGING_ON, false)){
-            spCharging.setEnabled(true);
+            //spCharging.setEnabled(true);
             spAuto.setEnabled(false);
         }else{
             spAuto.setEnabled(true);

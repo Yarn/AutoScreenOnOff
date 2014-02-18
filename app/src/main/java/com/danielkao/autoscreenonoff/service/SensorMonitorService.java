@@ -83,8 +83,8 @@ public class SensorMonitorService extends Service implements SensorEventListener
             if (CV.getPrefAutoOnoff(this)){
                 // before registering, need to check whether it's in sleeping time period
                 // if so, do nothing
-                if(CV.getPrefSleeping(this) && CV.isInSleepTime(this))
-                    return START_NOT_STICKY;
+                //if(CV.getPrefSleeping(this) && CV.isInSleepTime(this))
+                //    return START_NOT_STICKY;
                 registerSensor();
             }else if(CV.getPrefChargingOn(this)&&CV.isPlugged(this)){
                 registerSensor();
@@ -96,16 +96,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
         int action = intent.getIntExtra(CV.SERVICEACTION, -1);
 
         switch(action){
-            case CV.SERVICEACTION_SHOW_NOTIFICATION:
-            {
-                if(CV.getPrefShowNotification(this)){
-                    //showNotification();
-                }else{
-                    //hideNotification();
-                }
-
-                return START_NOT_STICKY;
-            }
             case CV.SERVICEACTION_SCREENOFF:
             {
                 CV.logi("onStartCommand: screenoff");
@@ -274,7 +264,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
         magnetMode = sp.getBoolean(CV.PREF_MAGNET_MODE, false);
         CV.logv("Magnet Mode " + magnetMode);
 
-		mPowerManager = ((PowerManager) getSystemService(POWER_SERVICE));
+		mPowerManager = (PowerManager) getSystemService(POWER_SERVICE);
 		mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
 		mProximity = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
@@ -285,13 +275,8 @@ public class SensorMonitorService extends Service implements SensorEventListener
 				"autoscreenonoff partiallock");
 		screenLock = mPowerManager.newWakeLock(
 				PowerManager.ACQUIRE_CAUSES_WAKEUP
-						| PowerManager.FULL_WAKE_LOCK
-						| PowerManager.ON_AFTER_RELEASE, "autoscreenonoff fulllock");
-
-        // show notification if it's set
-        if(CV.getPrefShowNotification(this)){
-            //showNotification();
-        }
+				| PowerManager.FULL_WAKE_LOCK
+				| PowerManager.ON_AFTER_RELEASE, "autoscreenonoff fulllock");
 	}
 
 	@Override
@@ -319,7 +304,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
 			return;
 		}
 
-		// grant device management
+		//open main activity if app doesn't have admin rights
 		if(!isActiveAdmin()){
 			Intent i = new Intent(this, MainActivity.class);
 			i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -329,19 +314,13 @@ public class SensorMonitorService extends Service implements SensorEventListener
         magPollFreq = CV.getPrefPollFreq(getBaseContext());
 
         if(magnetMode){
-            //mSensorManager.registerListener(this, mMagnet, 500000);
             if(mPowerManager.isScreenOn())
                 mSensorManager.registerListener(this, mMagnet, magPollFreq);
-            //else
             mSensorManager.registerListener(this, mProximity, proxPollFreq);
         }else{
             mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
             mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
             lightRegistered = true;
-        }
-        // listen to orientation change
-        if(CV.getPrefDisableInLandscape(getBaseContext())){
-            //registerOrientationChange();
         }
 
 		mIsRegistered = true;
@@ -395,22 +374,17 @@ public class SensorMonitorService extends Service implements SensorEventListener
             magnetStrength = (int)event.values[2];
             //CV.logv((int)event.values[0] + " " + (int)event.values[1] + " " + magnetStrength);
             //System.out.println((int)event.values[0] + " " + (int)event.values[1] + " " + magnetStrength);
-            if(magnetStrength < -200){
-                if(mPowerManager.isScreenOn()){
-                    turnOff();
-                }
-            }/*else if(!mPowerManager.isScreenOn()){
-                turnOn();
-            }*/
+            if(magnetStrength < -200 && mPowerManager.isScreenOn()){
+                turnOff();
+            }
         }
         else if(type == Sensor.TYPE_LIGHT){
             lightLux = (int)event.values[0];
+            System.out.println("lux" + lightLux);
         }
         else if(type == Sensor.TYPE_PROXIMITY){
             int cmDist = (int)event.values[0];
-            //proximitycm = (int)event.values[0];
             if(magnetMode){
-                //System.out.println(cmDist);
                 if(cmDist != 0){
                     turnOn();
                 }
@@ -428,9 +402,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
                     // value == 0; should turn screen off
                     if (cmDist == 0) {
                         if (mPowerManager.isScreenOn()) {
-                            // check if it is disabled during landscape mode, and now it's really in landscape
-                            // --> return
-                            //if(CV.getPrefDisableInLandscape(this) && isOrientationLandscape()){
                             if(false){
                                 return;
                             }
@@ -438,16 +409,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
                                 long timeout = (long) CV.getPrefTimeoutLock(this);
                                 if(timeout == 0)
                                     turnOff();
-                                /*else if(timeout == 2){
-                                    if(swipeCount >=4){
-                                        resetSwipeCount();
-                                        turnOff();
-                                    }
-                                }*/
-                                else if(timeout == 10){
-                                    // never: do nothing
-                                    return;
-                                } else{
+                                else{
                                     handler.postDelayed(runnableTurnOff, timeout);
                                 }
                             }
@@ -460,16 +422,6 @@ public class SensorMonitorService extends Service implements SensorEventListener
                             long timeout = (long) CV.getPrefTimeoutUnlock(this);
                             if(timeout==0){
                                 turnOn();
-                            }
-                            /*else if(timeout == 2){
-                                if(swipeCount >=4){
-                                    resetSwipeCount();
-                                    turnOn();
-                                }
-                            }*/
-                            else if(timeout == 10){
-                                // never: do nothing
-                                return;
                             } else
                                 handler.postDelayed(runnableTurnOn, timeout);
                         }
