@@ -42,7 +42,7 @@
     <string name="pref_summary_timeout_unlock">Delay how long before Screen On take effects. \n\nCurrent setting:%s</string>
     <string name="pref_title_timeout_unlock">Screen On Timeout Value</string>
 
-    <string name="pref_summary_partiallock">ONLY WORKS on SOME devices. On other devices, the on/off function will not work well. Try by yourself.</string>
+    <string name="pref_summary_partiallock">(i dont think this is a thing right now, ill prob remove it) ONLY WORKS on SOME devices. On other devices, the on/off function will not work well. Try by yourself.</string>
     <string name="pref_title_partiallock">Power Save Mode</string>
 
     <string name="timeout_same">Same as Lock Timeout Value</string>
@@ -182,15 +182,6 @@
         ]]>
     </string>
 
-    <string name="pref_sleep_setting">Sleep Time Setting (Beta)</string>
-    <string name="pref_summary_sleeping">to save power consumption.(Still buggy. report to me if you find bugs.)</string>
-    <string name="pref_title_sleeping">Disable while Sleep</string>
-    <string name="sleep_start_title">Sleep Start Time</string>
-    <string name="sleep_stop_title">Sleep End Time</string>
-
-    <string name="pref_summary_show_notification">Faster toggle;also including screen off button</string>
-    <string name="pref_title_show_notification">Show Notification</string>
-    <string name="statusbar_charging">Charging! AutoScreen is enabled.</string>
     <string name="statusbar_autoscreen_on">AutoScreen is enabled.</string>
     <string name="statusbar_autoscreen_off">AutoScreen is disabled.</string>
 

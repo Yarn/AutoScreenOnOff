@@ -250,13 +250,6 @@ public class AutoScreenOnOffPreferenceActivity extends PreferenceActivity implem
 
         }
         else if(key.equals(CV.PREF_AUTO_ON)){
-            if(CV.getPrefAutoOnoff(this)==false)
-                cancelSchedule();
-            else{
-                if(CV.getPrefSleeping(this)){
-                    setSchedule();
-                }
-            }
 
             // send intent to service
             Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
@@ -265,69 +258,6 @@ public class AutoScreenOnOffPreferenceActivity extends PreferenceActivity implem
             i.putExtra(CV.SERVICETYPE,
                     CV.SERVICETYPE_SETTING);
             startService(i);
-        }
-        else if(key.equals(CV.PREF_CHARGING_ON)){
-            Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-            i.putExtra(CV.SERVICEACTION,
-                    (sharedPreferences.getBoolean(key,false))
-                            ? CV.SERVICEACTION_TURNON
-                            : CV.SERVICEACTION_TURNOFF);
-                startService(i);
-        }
-        else if(key.equals(CV.PREF_SHOW_NOTIFICATION)){
-            // if it's on mode, then should notify service to enable onOrientationListener
-            Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-            i.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_SHOW_NOTIFICATION);
-            startService(i);
-        }
-        //notify service when Pref of temp disable in land is changed.
-        else if(key.equals(CV.PREF_DISABLE_IN_LANDSCAPE)){
-            // if it's on mode, then should notify service to enable onOrientationListener
-            Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-            i.putExtra(CV.SERVICEACTION, CV.SERVICEACTION_UPDATE_DISABLE_IN_LANDSCAPE);
-            startService(i);
-        }else if(key.equals(CV.PREF_TIMEOUT_LOCK)){
-            // for updating list preference summary
-            ListPreference lp = (ListPreference) findPreference(CV.PREF_TIMEOUT_LOCK);
-            String str = getString(R.string.pref_summary_timeout_lock);
-            lp.setSummary(String.format(str,lp.getEntry()));
-            //lp.setSummary(str);
-        }else if(key.equals(CV.PREF_TIMEOUT_UNLOCK)){
-            // for updating list preference summary
-            ListPreference lp = (ListPreference) findPreference(CV.PREF_TIMEOUT_UNLOCK);
-            String str = getString(R.string.pref_summary_timeout_unlock);
-            lp.setSummary(String.format(str,lp.getEntry()));
-        }else if(key.equals(CV.PREF_SLEEPING)){
-            // not turned on: just igonre the change
-            if(CV.getPrefAutoOnoff(this)==false)
-                return;
-
-            if(CV.getPrefSleeping(this)){
-                // on:register the alarmmanager
-                CV.logv("set schedule");
-                setSchedule();
-            }else{
-                // off: cancel alarmmanager
-                CV.logv("cancel schedule");
-                cancelSchedule();
-
-                // if autoOn is on, should turn it on again
-                Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-                i.putExtra(CV.SERVICEACTION,
-                        CV.SERVICEACTION_TOGGLE);
-                i.putExtra(CV.SERVICETYPE,
-                        CV.SERVICETYPE_SETTING);
-                startService(i);
-            }
-
-
-        }else if(key.equals(CV.PREF_SLEEP_START)||key.equals(CV.PREF_SLEEP_STOP)){
-            // re-register alarm manager
-            CV.logv("isInSleepTime:%b",CV.isInSleepTime(this));
-            if(CV.getPrefSleeping(this)){
-                setSchedule();
-            }
-
         }else if(key.equals(CV.PREF_NO_PARTIAL_LOCK)){
             CV.logv("change whether to use partial lock");
 
@@ -337,22 +267,6 @@ public class AutoScreenOnOffPreferenceActivity extends PreferenceActivity implem
             startService(i);
         }
     }
-
-    //<editor-fold description="schedule related">
-    private void setSchedule() {
-        Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-        i.putExtra(CV.SERVICEACTION,
-                CV.SERVICEACTION_SET_SCHEDULE);
-        startService(i);
-    }
-
-    private void cancelSchedule() {
-        Intent i = new Intent(CV.SERVICE_INTENT_ACTION);
-        i.putExtra(CV.SERVICEACTION,
-                CV.SERVICEACTION_CANCEL_SCHEDULE);
-        startService(i);
-    }
-    //</editor-fold>
 
     // when auto on is turned on; user can't set charging mode
     // only when auto on is turned on, use can set landscape mode

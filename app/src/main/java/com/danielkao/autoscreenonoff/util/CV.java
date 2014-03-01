@@ -26,15 +26,10 @@ public final class CV {
     public static final String PREF_TIMEOUT_LOCK = "prefTimeout";
     public static final String PREF_TIMEOUT_UNLOCK = "prefTimeoutUnlock";
     public static final String PREF_VIEWED_VERSION_CODE = "prefViewedVersionCode";
-    public static final String PREF_SLEEPING = "prefSleeping";
-    public static final String PREF_SLEEP_START = "prefSleepStart";
-    public static final String PREF_SLEEP_STOP = "prefSleepStop";
-    public static final String PREF_SHOW_NOTIFICATION = "prefShowNotification";
     public static final String PREF_NO_PARTIAL_LOCK = "prefNoPartialLock";
     public static final String PREF_PLAY_CLOSE_SOUND = "prefPlayCloseSound";
-    public static final String PREF_STRATEGY_TURNON = "prefStrategyTurnOn";
-    public static final String PREF_STRATEGY_TURNOFF = "prefStrategyTurnOff";
 
+    public static final String PREF_MAGNET_THRESHOLD = "magThreshHold";
     public static final String PREF_MAGNET_MODE = "prefMagnetMode";
     public static final String PREF_POLL_FREQ = "prefPollFreq";
 
@@ -46,10 +41,7 @@ public final class CV {
     public static final int SERVICEACTION_UPDATE_DISABLE_IN_LANDSCAPE = 4;
     public static final int SERVICEACTION_MODE_SLEEP = 5;
     public static final int SERVICEACTION_SCREENOFF = 6;
-    public static final int SERVICEACTION_SHOW_NOTIFICATION = 7;
     public static final int SERVICEACTION_PARTIALLOCK_TOGGLE = 8;
-    public static final int SERVICEACTION_SET_SCHEDULE = 9;
-    public static final int SERVICEACTION_CANCEL_SCHEDULE = 10;
 
     public static String CLOSE_AFTER="close_after";
 
@@ -60,12 +52,8 @@ public final class CV {
     public static final String UPDATE_WIDGET_ACTION = "com.danielkao.autoscreenonoff.updatewidget";
     //
     public static final String SERVICETYPE = "servicetype";
-    public static final String SERVICETYPE_CHARGING = "charging";
     public static final String SERVICETYPE_SETTING = "setting";
     public static final String SERVICETYPE_WIDGET = "widget";
-    public static final String SERVICETYPE_NOTIFICATION = "notification";
-    // rotation threshold
-    public static final int ROTATION_THRESHOLD = 45;
 
     @TargetApi(Build.VERSION_CODES.GINGERBREAD)
 	public static void logv(Object...argv){
@@ -77,7 +65,7 @@ public final class CV {
 		else
 		{
 			Object [] slicedObj = Arrays.copyOfRange(argv, 1, argv.length);
-			Log.v(TAG,String.format((String) argv[0], (Object[])slicedObj));
+			Log.v(TAG, String.format((String) argv[0], (Object[]) slicedObj));
 		}
 	}
 
@@ -103,51 +91,18 @@ public final class CV {
         return Integer.parseInt(freq);
     }
 
+    public static int getPrefMagThreshold(Context context){
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+        String threshold = sp.getString(PREF_MAGNET_THRESHOLD, "150");
+        if(threshold.equals("")){
+            return -150;
+        }
+        return Integer.parseInt(threshold) * -1;
+    }
+
     public static boolean getPrefAutoOnoff(Context context) {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
         return sp.getBoolean(PREF_AUTO_ON, false);
-    }
-
-    public static boolean getPrefChargingOn(Context context) {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean isPrefChargingOn = sp.getBoolean(PREF_CHARGING_ON, false);
-        CV.logv("prefchargingon: %b", isPrefChargingOn);
-        return isPrefChargingOn;
-    }
-
-    public static boolean getPrefDisableInLandscape(Context context) {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean isPrefDisableInLandscape = sp.getBoolean(PREF_DISABLE_IN_LANDSCAPE, false);
-        CV.logv("prefdisableinlandscape: %b", isPrefDisableInLandscape);
-        return isPrefDisableInLandscape;
-    }
-
-    public static boolean getPrefSleeping(Context context) {
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean i  = sp.getBoolean(PREF_SLEEPING, false);
-        CV.logv("prefSleeping: %b", i);
-        return i;
-    }
-
-    public static String getPrefSleepStart(Context context){
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        String s  = sp.getString(PREF_SLEEP_START, "22:00");
-        CV.logv("prefSleepStart: %s", s);
-        return s;
-    }
-
-    public static String getPrefSleepStop(Context context){
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        String s  = sp.getString(PREF_SLEEP_STOP, "22:00");
-        CV.logv("prefSleepStop: %s", s);
-        return s;
-    }
-
-    public static boolean getPrefShowNotification(Context context){
-        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
-        boolean b  = sp.getBoolean(PREF_SHOW_NOTIFICATION, false);
-        CV.logv("prefShowNotification: %b", b);
-        return b;
     }
 
     public static boolean getPrefNoPartialLock(Context context){
@@ -185,7 +140,7 @@ public final class CV {
         return i;
     }
 
-    public static boolean isPlugged(Context context){
+    /*public static boolean isPlugged(Context context){
         Intent intentBat = context.getApplicationContext().registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         return (intentBat.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) > 0);
     }
@@ -218,5 +173,5 @@ public final class CV {
         }
 
         return false;
-    }
+    }*/
 }

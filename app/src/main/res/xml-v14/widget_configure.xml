@@ -10,7 +10,7 @@
         </SwitchPreference>
 
         <CheckBoxPreference
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:key="prefMagnetMode"
             android:summary="@string/pref_summary_magnet_mode"
             android:title="@string/pref_title_magnet_mode" >
@@ -19,11 +19,18 @@
 
     <com.danielkao.autoscreenonoff.ui.MyPreferenceCategory android:title="@string/pref_advanced_setting" >
         <EditTextPreference
-            android:defaultValue="100"
+            android:defaultValue="300"
             android:key="prefPollFreq"
             android:title="Change polling delay"
             android:inputType="number"
             android:summary="magnet only" >
+        </EditTextPreference>
+        <EditTextPreference
+            android:defaultValue="150"
+            android:key="magThreshHold"
+            android:title="Change Threshold"
+            android:inputType="number"
+            android:summary="Change the threshold for turning off the screen." >
         </EditTextPreference>
         <CheckBoxPreference
                 android:defaultValue="false"
@@ -42,7 +49,7 @@
         android:title="@string/pref_onoff_related"
         android:key="pref_onff_related">
         <ListPreference
-                android:defaultValue="500"
+                android:defaultValue="0"
                 android:key="prefTimeout"
                 android:entries="@array/timeout_lock_entries"
                 android:entryValues="@array/timeout_lock_values"
