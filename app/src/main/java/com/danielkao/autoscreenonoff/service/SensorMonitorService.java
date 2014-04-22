@@ -34,12 +34,13 @@ public class SensorMonitorService extends Service implements SensorEventListener
     private Sensor mMagnet;
     private int lightLux;
     private int baselineLightLux;
+    private boolean proxClose;
     private boolean lightRegistered = false;
     boolean magnetMode;
     int magnetStrength;
     int magPollFreq;
     int magThreshold;
-    final static int proxPollFreq = 500000;
+    final static int proxPollFreq = 100;
     OrientationEventListener mOrientationListener;
 
 	private boolean mIsRegistered;
@@ -307,80 +308,39 @@ public class SensorMonitorService extends Service implements SensorEventListener
             //System.out.println((int)event.values[0] + " " + (int)event.values[1] + " " + magnetStrength);
             if(magnetStrength < magThreshold && powerManager.isScreenOn()){
                 turnOff();
+            }else if(!proxClose){
+                turnOn();
             }
-        }
-        else if(type == Sensor.TYPE_LIGHT){
-            lightLux = (int)event.values[0];
-            System.out.println("lux" + lightLux);
         }
         else if(type == Sensor.TYPE_PROXIMITY){
             int cmDist = (int)event.values[0];
-            if(magnetMode){
-                if(cmDist != 0){
-                    turnOn();
+            System.out.println(cmDist);
+            if(cmDist != 0){
+                //turnOn();
+
+                proxClose = false;
+                if(!powerManager.isScreenOn()){
+                    mSensorManager.registerListener(this, mMagnet, magPollFreq);
                 }
             }else{
-                // Do something with this sensor value.
-                CV.logv("onSensorChanged proximity:%f", cmDist);
-                if (isActiveAdmin()) {
-                    // reset handler if there's already one
-                    if(handler.hasMessages(CALLBACK_EXISTS)){
-                        CV.logv("timer is on; exit");
-                        resetHandler();
-                        return;
-                    }
-
-                    // value == 0; should turn screen off
-                    if (cmDist == 0) {
-                        if (powerManager.isScreenOn()) {
-                            if(false){
-                                return;
-                            }
-                            else{
-                                long timeout = (long) CV.getPrefTimeoutLock(this);
-                                if(timeout == 0)
-                                    turnOff();
-                                else{
-                                    handler.postDelayed(runnableTurnOff, timeout);
-                                }
-                            }
-                        }
-                    }
-                    // should turn on
-                    else {
-                        baselineLightLux = lightLux;
-                        if (!powerManager.isScreenOn()) {
-                            long timeout = (long) CV.getPrefTimeoutUnlock(this);
-                            if(timeout==0){
-                                turnOn();
-                            } else
-                                handler.postDelayed(runnableTurnOn, timeout);
-                        }
-                    }
+                proxClose = true;
+                if(!powerManager.isScreenOn()){
+                    mSensorManager.unregisterListener(this, mMagnet);
                 }
             }
         }
 	}
 
-	private void togglePreference() {
-        CV.logv("togglePreference");
-		SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
-		boolean IsAutoOn = sp.getBoolean(CV.PREF_AUTO_ON, false);
-		Editor editor = sp.edit();
-		editor.putBoolean(CV.PREF_AUTO_ON, !IsAutoOn);
-		editor.commit();
 
-	}
 
     //<editor-fold desc="time out handler">
-    private void resetHandler(){
-        CV.logv("reset Handler");
-        handler.removeMessages(CALLBACK_EXISTS);
-        handler.removeCallbacks(runnableTurnOn);
-        handler.removeCallbacks(runnableTurnOff);
-    }
 
     private void turnOn(){
+        if (!screenLock.isHeld()) {
+            screenLock.acquire();
+        }
+        screenLock.release();
+
         if(magnetMode){
             //mSensorManager.unregisterListener(this);
             mSensorManager.registerListener(this, mMagnet, magPollFreq);
@@ -392,10 +352,7 @@ public class SensorMonitorService extends Service implements SensorEventListener
             lightRegistered = true;
         }
 
-        if (!screenLock.isHeld()) {
-            screenLock.acquire();
-        }
-        screenLock.release();
+
     }
 
     private void turnOff(){
@@ -404,16 +361,8 @@ public class SensorMonitorService extends Service implements SensorEventListener
             screenLock.release();
         deviceManager.lockNow();
         //playCloseSound();
-        if(magnetMode){
-            mSensorManager.unregisterListener(this, mMagnet);
-            //mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
-        }
-        else if(lightRegistered){
-            mSensorManager.unregisterListener(this, mLight);
-            CV.logi("Light sensor disabled");
-
-            lightRegistered = false;
-        }
+        mSensorManager.unregisterListener(this, mMagnet);
+        //mSensorManager.registerListener(this, mProximity, SensorManager.SENSOR_DELAY_NORMAL);
 
         boolean b  = CV.getPrefPlayCloseSound(this);
         if(b){
@@ -453,6 +402,23 @@ public class SensorMonitorService extends Service implements SensorEventListener
         }
     };
     //</editor-fold>
+
+    private void resetHandler(){
+        CV.logv("reset Handler");
+        handler.removeMessages(CALLBACK_EXISTS);
+        handler.removeCallbacks(runnableTurnOn);
+        handler.removeCallbacks(runnableTurnOff);
+    }
+
+    private void togglePreference() {
+        CV.logv("togglePreference");
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        boolean IsAutoOn = sp.getBoolean(CV.PREF_AUTO_ON, false);
+        Editor editor = sp.edit();
+        editor.putBoolean(CV.PREF_AUTO_ON, !IsAutoOn);
+        editor.commit();
+
+    }
 
     private void playCloseSound(){
         if(CV.getPrefPlayCloseSound(this)){
